@@ -11,7 +11,7 @@ import heapq
 
 # Collect Data trough web scraping
 
-url = 'https://stackoverflow.com/'
+url = 'https://en.wikipedia.org/wiki/Graz'
 
 allContent = ""
 
