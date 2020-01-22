@@ -24,81 +24,92 @@ def sentence_tokenizer(sentence):
 # output: Newsfeed as JSON element
 def parse_feed(url):
     NewsFeed = feedparser.parse(url)
-    entry = NewsFeed.entries
+    #entry = NewsFeed.entries
     return NewsFeed
+
+def clean_paragraphs(paragraphs):
+    allParagaphContent_CleanerData = re.sub(r'\[[0-9]*\]', ' ', paragraphs)
+    allParagaphContent_CleanedData = re.sub(r'\s+', ' ', allParagaphContent_CleanerData)
+    #Hier sind richtige Sätze mit Satzzeichen
+    return allParagaphContent_CleanedData
+
+def get_url_text(url):
+    htmlDoc = request.urlopen(url)
+    soupObject = bs(htmlDoc, 'html.parser')
+    # Get all Paragraphs
+    paragraphs = soupObject.findAll('p')
+
+    allParagaphContents = ''
+    for paragaphContent in paragraphs:
+        allParagaphContents += (paragaphContent.text + ' ')
+    richtigeSaetze = clean_paragraphs(allParagaphContents)
+    
+    return richtigeSaetze
 
 
 # Get Feed
-def get_feed(url):
-    feed = parse_feed('https://www.cnbc.com/id/10000664/device/rss/rss.html')
+def get_feed(feedurl):
+    feed = parse_feed(feedurl)
+
+    alltext =''
     for entry in feed.entries:
-        url = entry.link
-        htmlDoc = request.urlopen(url)
-        soupObject = bs(htmlDoc, 'html.parser')
+        feedtext= get_url_text(str(entry.link))
+        alltext += (feedtext + ' ')
+    return alltext
 
-        # Get all Paragraphs
-        allParagaphContent = ''
-        paragraphsContents = soupObject.findAll('p')
-
-    print(paragraphsContents)
+url = 'https://www.cnbc.com/id/10000664/device/rss/rss.html'
+text = get_feed(url)
 
 
 
-def feed_to_string():
-    for paragaphContent in paragraphsContents:
-        allParagaphContent += (paragaphContent.text + ' ')
+allParagaphContent_CleanedData = re.sub(r'[^a-zA-Z]', ' ', text)
+allParagaphContent_CleanedData = re.sub(r'\s+', ' ', allParagaphContent_CleanedData)
+#Hier ist reiner Nudltext
+nltk.download()
+sentences = nltk.sent_tokenize(text)
 
-    allParagaphContent_CleanerData = re.sub(r'\[[0-9]*\]', ' ', allParagaphContent)
-    allParagaphContent_CleanedData = re.sub(r'\s+', ' ', allParagaphContent_CleanerData)
-
-    # Get Sentences from paragraphs
-    tokens_sentences = nltk.sent_tokenize(allParagaphContent_CleanedData)
-
-    # Get all Words
-    allParagaphContent_CleanedData = re.sub(r'[^a-zA-Z]', ' ', allParagaphContent_CleanedData)
-    allParagaphContent_CleanedData = re.sub(r'\s+', ' ', allParagaphContent_CleanedData)
-
-    tokens_word = nltk.sent_tokenize(allParagaphContent_CleanedData)
+tokens_word = nltk.sent_tokenize(text)
 
 
-    # Creating Sentence Token
-    def sent_tokensize(self, strings):
-        return [self.tokensize(allParagaphContent_CleanedData) for allParagaphContent in strings]
-        nltk.sent_tokensize(allParagaphContent_CleanedData)
+# Creating Sentence Token
+def sent_tokensize(self, strings):
+    return [self.tokensize(allParagaphContent_CleanedData) for allParagaphContent in strings]
+    nltk.sent_tokensize(allParagaphContent_CleanedData)
 
 
-    words_tokens = nltk.word_tokenize(allParagaphContent_CleanedData.lower())
+words_tokens = nltk.word_tokenize(text.lower())
 
-    # Get useless words in english
-    stopwords = nltk.corpus.stopwords.words('english')
+# Get useless words in english
+stopwords = nltk.corpus.stopwords.words('english')
 
-    # Calculate the Frequency
-    word_frequencies = {}
+# Calculate the Frequency
+word_frequencies = {}
 
-    for word in words_tokens:
-        if word not in stopwords:
-            if word in word_frequencies.keys():
-                word_frequencies[word] += 1
-            else:
-                word_frequencies[word] = 1
-
-    sentences_scores = {}
-
-    sentenceAndValue = pd.DataFrame(columns={'Sentence', 'Value'})
-    for sentence in tokens_sentences:
-        tokens = sentence_tokenizer(sentence.lower())
-        clean_tokens = [word for word in tokens if word not in stopwords]
-        length = len(clean_tokens)
-        value = 0
-        if length == 0:
-            sentence_value = 0
+for word in words_tokens:
+    if word not in stopwords:
+        if word in word_frequencies.keys():
+            word_frequencies[word] += 1
         else:
-            for word in clean_tokens:
-                value = value + word_frequencies[word]
-            sentence_value = value / length
-        # sentenceAndValue.append((sentence_value,sentence))
-        sentenceAndValue = sentenceAndValue.append({'Sentence': sentence, 'Value': sentence_value}, ignore_index=True)
+            word_frequencies[word] = 1
 
-    summary_machineLearning = sentenceAndValue.sort_values('Value', ascending=False)
-    # summary_machineLearning = heapq.nlargest(10, sentenceAndValue, key=sentenceAndValue.get)
-    #print(summary_machineLearning.head(10))
+sentences_scores = {}
+
+sentenceAndValue = pd.DataFrame(columns={'Sentence', 'Value'})
+for sentence in tokens_sentences:
+    tokens = sentence_tokenizer(sentence.lower())
+    clean_tokens = [word for word in tokens if word not in stopwords]
+    length = len(clean_tokens)
+    value = 0
+    if length == 0:
+        sentence_value = 0
+    else:
+        for word in clean_tokens:
+            value = value + word_frequencies[word]
+        sentence_value = value / length
+    # sentenceAndValue.append((sentence_value,sentence))
+    sentenceAndValue = sentenceAndValue.append({'Sentence': sentence, 'Value': sentence_value}, ignore_index=True)
+
+summary_machineLearning = sentenceAndValue.sort_values('Value', ascending=False)
+# summary_machineLearning = heapq.nlargest(10, sentenceAndValue, key=sentenceAndValue.get)
+#print(summary_machineLearning.head(10))
+print('Test')
