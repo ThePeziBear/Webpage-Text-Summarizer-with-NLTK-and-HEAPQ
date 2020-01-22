@@ -1,6 +1,8 @@
 from itertools import count
 from urllib import request
+from urllib.request import urlopen
 from bs4 import BeautifulSoup as bs
+from lxml import etree
 import re
 import pandas as pd
 import nltk
@@ -24,7 +26,6 @@ def sentence_tokenizer(sentence):
 # output: Newsfeed as JSON element
 def parse_feed(url):
     NewsFeed = feedparser.parse(url)
-    #entry = NewsFeed.entries
     return NewsFeed
 
 def clean_paragraphs(paragraphs):
@@ -33,27 +34,36 @@ def clean_paragraphs(paragraphs):
     #Hier sind richtige Sätze mit Satzzeichen
     return allParagaphContent_CleanedData
 
-def get_url_text(url):
-    htmlDoc = request.urlopen(url)
-    soupObject = bs(htmlDoc, 'html.parser')
-    # Get all Paragraphs
-    paragraphs = soupObject.findAll('p')
+def get_xpath_text(url):
+    response = urlopen(url)
+    htmlparser = etree.HTMLParser()
+    tree = etree.parse(response, htmlparser)
 
-    allParagaphContents = ''
-    for paragaphContent in paragraphs:
-        allParagaphContents += (paragaphContent.text + ' ')
-    richtigeSaetze = clean_paragraphs(allParagaphContents)
+    expr = '//*[@id="RegularArticle-ArticleBody-5"]/div[2]'
+    text = tree.xpath(expr)
+    textlist = ''
+    if len(text) == 0 : return ''
+    for line in text[0]:
+        if (line.text == None): continue
+        textlist += (line.text + ' ')
+    return textlist
     
-    return richtigeSaetze
+#def get_url_text(url):
+ #   paragraphs = get_xpath_text(url)
+  #  return paragraphs
 
+# Creating Sentence Token
+def sent_tokensize(self, strings):
+    return [self.tokensize(allParagaphContent_CleanedData) for allParagaphContent in strings]
+    nltk.sent_tokensize(allParagaphContent_CleanedData)
 
 # Get Feed
 def get_feed(feedurl):
     feed = parse_feed(feedurl)
-
+    get_xpath_text(feed.entries[0].link)
     alltext =''
     for entry in feed.entries:
-        feedtext= get_url_text(str(entry.link))
+        feedtext= get_xpath_text(entry.link)
         alltext += (feedtext + ' ')
     return alltext
 
@@ -61,23 +71,13 @@ url = 'https://www.cnbc.com/id/10000664/device/rss/rss.html'
 text = get_feed(url)
 
 
-
 allParagaphContent_CleanedData = re.sub(r'[^a-zA-Z]', ' ', text)
 allParagaphContent_CleanedData = re.sub(r'\s+', ' ', allParagaphContent_CleanedData)
-#Hier ist reiner Nudltext
-nltk.download()
+#allParagaphContent_CleanedData ist reiner Nudltext
+
 sentences = nltk.sent_tokenize(text)
 
-tokens_word = nltk.sent_tokenize(text)
-
-
-# Creating Sentence Token
-def sent_tokensize(self, strings):
-    return [self.tokensize(allParagaphContent_CleanedData) for allParagaphContent in strings]
-    nltk.sent_tokensize(allParagaphContent_CleanedData)
-
-
-words_tokens = nltk.word_tokenize(text.lower())
+words_tokens = sentence_tokenizer(text.lower())
 
 # Get useless words in english
 stopwords = nltk.corpus.stopwords.words('english')
@@ -91,11 +91,11 @@ for word in words_tokens:
             word_frequencies[word] += 1
         else:
             word_frequencies[word] = 1
-
+            
 sentences_scores = {}
 
 sentenceAndValue = pd.DataFrame(columns={'Sentence', 'Value'})
-for sentence in tokens_sentences:
+for sentence in sentences:
     tokens = sentence_tokenizer(sentence.lower())
     clean_tokens = [word for word in tokens if word not in stopwords]
     length = len(clean_tokens)
@@ -106,10 +106,9 @@ for sentence in tokens_sentences:
         for word in clean_tokens:
             value = value + word_frequencies[word]
         sentence_value = value / length
-    # sentenceAndValue.append((sentence_value,sentence))
     sentenceAndValue = sentenceAndValue.append({'Sentence': sentence, 'Value': sentence_value}, ignore_index=True)
 
 summary_machineLearning = sentenceAndValue.sort_values('Value', ascending=False)
 # summary_machineLearning = heapq.nlargest(10, sentenceAndValue, key=sentenceAndValue.get)
-#print(summary_machineLearning.head(10))
-print('Test')
+summary_machineLearning= summary_machineLearning.drop_duplicates()
+print(summary_machineLearning['Sentence'].head(10))
