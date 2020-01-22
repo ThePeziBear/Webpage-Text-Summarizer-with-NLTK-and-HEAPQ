@@ -47,10 +47,6 @@ def get_xpath_text(url):
         if (line.text == None): continue
         textlist += (line.text + ' ')
     return textlist
-    
-#def get_url_text(url):
- #   paragraphs = get_xpath_text(url)
-  #  return paragraphs
 
 # Creating Sentence Token
 def sent_tokensize(self, strings):
@@ -109,6 +105,5 @@ for sentence in sentences:
     sentenceAndValue = sentenceAndValue.append({'Sentence': sentence, 'Value': sentence_value}, ignore_index=True)
 
 summary_machineLearning = sentenceAndValue.sort_values('Value', ascending=False)
-# summary_machineLearning = heapq.nlargest(10, sentenceAndValue, key=sentenceAndValue.get)
 summary_machineLearning= summary_machineLearning.drop_duplicates()
 print(summary_machineLearning['Sentence'].head(10))
