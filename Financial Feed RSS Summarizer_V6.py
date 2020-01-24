@@ -90,10 +90,9 @@ for sentence in sentences:
 
 summary_machineLearning = sentenceAndValue.sort_values('Value', ascending=False)
 summary_machineLearning = summary_machineLearning.drop_duplicates()
-summary_machineLearning['Sentence'] = summary_machineLearning['Sentence'].replace("\"", ' ')
 
 summary_machineLearning = summary_machineLearning.head(10)
-summary_machineLearning['Sentence'] = [re.sub(r'\"\s*', ' ', clean) for clean in summary_machineLearning['Sentence'].values]
+summary_machineLearning['Sentence'] = [re.sub(r'\"', '', clean) for clean in summary_machineLearning['Sentence'].values]
 summary = ''
 for sentence in summary_machineLearning['Sentence'].values:
     summary += (sentence + '\n')
